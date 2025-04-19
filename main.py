@@ -1,6 +1,13 @@
 import streamlit as st
 import tensorflow as tf
 import numpy as np
+import streamlit as st
+import streamlit.components.v1 as components
+
+
+
+
+
 # Language dictionaries for translation (Example in Hindi, Tamil, Telugu)
 translations = {
     "english": {
@@ -118,6 +125,22 @@ translations = {
 }
 # Streamlit configuration
 st.set_page_config(page_title=translations["english"]["title"], page_icon="🌿", layout="centered")
+
+# Inject Google Translate widget
+components.html("""
+    <div id="google_translate_element"></div>
+    <script type="text/javascript">
+      function googleTranslateElementInit() {
+        new google.translate.TranslateElement(
+          {pageLanguage: 'en'},
+          'google_translate_element'
+        );
+      }
+    </script>
+    <script type="text/javascript" 
+      src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit">
+    </script>
+""", height=100)
 
 
 
@@ -488,28 +511,37 @@ st.markdown("---")
 
 # Disease recognition
 st.header(translations[lang]['disease_recognition'])
-img_file = st.file_uploader(translations[lang]['choose_image'], type=['jpg','jpeg','png'])
-if img_file:
-    st.image(img_file, caption='Uploaded Image', use_column_width=True)
 
+# File upload or camera input
+img_file = st.file_uploader(translations[lang]['choose_image'], type=['jpg','jpeg','png'])
+camera_img = st.camera_input("Or take a photo using your camera")
+
+# Preview image
+image_to_use = img_file if img_file else camera_img
+if image_to_use:
+    st.image(image_to_use, caption='Selected Image', use_column_width=True)
+
+# Predict button
 if st.button(translations[lang]['predict_btn']):
-    if not img_file:
-        st.warning('Please upload an image first.')
+    if not image_to_use:
+        st.warning('Please upload or capture an image first.')
     else:
-        idx = model_prediction(img_file)
+        idx = model_prediction(image_to_use)
         label = class_labels[idx]
         meta = class_metadata[idx] if idx < len(class_metadata) else {}
 
         st.success(f"Prediction: {label}")
+
         # Display next-step info
-    if meta:
+        if meta:
             st.markdown(f"<div style='font-size:22px'><b>Cause:</b> {meta['cause']}</div>", unsafe_allow_html=True)
             st.markdown(f"<div style='font-size:22px'><b>Avoid:</b> {meta['avoid']}</div>", unsafe_allow_html=True)
             st.markdown(f"<div style='font-size:22px'><b>Do:</b> {meta['do']}</div>", unsafe_allow_html=True)
             st.markdown(f"<div style='font-size:22px'><b>Recommended Pesticides:</b> {meta['pesticides']}</div>", unsafe_allow_html=True)
             st.markdown(f"<div style='font-size:22px'><b>Organic Remedies:</b> {meta['organic_remedies']}</div>", unsafe_allow_html=True)
-    else:
+        else:
             st.info('No action needed. Plant appears healthy.')
+
 
 
 
